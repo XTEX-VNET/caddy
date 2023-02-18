@@ -1,0 +1,41 @@
+name: Build
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: sudo apt install podman
+
+      - name: Login
+        run: |
+          podman login -u xtexChooser -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
+
+      - name: Build
+        run: |
+          podman build -t caddy .
+
+      - name: Test
+        run: |
+          podman run --name test -d -it localhost/caddy
+          podman exec -it test apk add curl
+          podman exec -it test curl localhost:2019/load \
+            -H "Content-Type: application/json" \
+            -d '{"apps":{"http":{"servers":{"hello":{"listen":[":2015"],"routes":[{"handle":[{"handler":"static_response","body":"Hello, world!"}]}]}}}}}'
+          podman exec -it test curl localhost:2015 -v
+          podman exec test caddy stop
+          podman rm test
+          echo Test done
+
+      - name: Push
+        run: |
+          podman tag localhost/caddy ghcr.io/xtex-vnet/caddy:latest
+          podman push ghcr.io/xtex-vnet/caddy:latest
