@@ -12,4 +12,4 @@ RUN xcaddy build \
 FROM docker.io/library/alpine
 COPY --from=builder /build/caddy /usr/bin/caddy
 WORKDIR /
-ENTRYPOINT [ "/usr/bin/caddy", "run" ]
+ENTRYPOINT [ "/usr/bin/caddy", "run", "--environ", "--config", "/etc/caddy/Caddyfile" ]
